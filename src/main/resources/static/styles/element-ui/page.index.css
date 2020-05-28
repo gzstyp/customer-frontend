@@ -1,0 +1,35 @@
+﻿#app{
+    width:1024px;
+    margin:0 auto;
+}
+.add-btn{
+    margin-top:20px;
+    width:100%;
+}
+.body{
+    margin-top:20px;
+}
+/*表格内的样式  padding: 8px 0; 较为好看*/
+.el-table td, .el-table th{
+    padding: 6px 0;
+}
+/*暂无数据的样式*/
+.el-table__empty-block {min-height:41px;}
+.el-table__empty-text{line-height: 41px;width: 50%;color: #909399;}
+/* element-ui中dialog居中 */
+.el-dialog{
+    display: flex;
+    flex-direction: column;
+    margin:0 !important;
+    position:absolute;
+    top:50%;
+    left:50%;
+    transform:translate(-50%,-50%);
+    /*height:600px;*/
+    max-height:calc(100% - 30px);
+    max-width:calc(100% - 30px);
+}
+.el-dialog .el-dialog__body{
+    flex:1;
+    overflow: auto;
+}

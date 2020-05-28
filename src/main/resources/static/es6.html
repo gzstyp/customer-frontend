@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>vue + element-ui[ES6写法]</title>
+    <link rel="stylesheet" href="styles/element-ui/element-ui.css">
+    <link rel="stylesheet" href="styles/element-ui/page.index.css">
+</head>
+<body>
+    <div id="app">
+        <div class="head">
+            <el-row :gutter="20" :model="userInfo"><!--model="userInfo" 就是实体啊-->
+                <el-col :span="6">
+                    <el-input
+                        placeholder="请输入姓名"
+                        v-model="userInfo.name"
+                        clearable>
+                    </el-input>
+                </el-col>
+                <el-col :span="6">
+                    <el-select v-model="userInfo.sex" placeholder="选择性别">
+                        <el-option
+                            v-for="item in options"
+                            :key="item.value"
+                            :label="item.label"
+                            :value="item.value">
+                        </el-option>
+                    </el-select>
+                </el-col>
+                <el-col :span="6">
+                    <el-input
+                        placeholder="请输入电话号码"
+                        v-model="userInfo.tell"
+                        clearable>
+                    </el-input>
+                </el-col>
+            </el-row>
+            <el-button type="primary" @click="addUser" class="add-btn">添加</el-button>
+        </div>
+        <template>
+            <el-table :data="tableData" stripe border style="width: 100%"><!--:data="tableData"是数据来源-->
+                <el-table-column type="selection" width="55">
+                <!-- ok <el-table-column
+                    type="index"
+                    label="序号"
+                    width="80">
+                </el-table-column>-->
+                <el-table-column label="序号" width="80">
+                    <template slot-scope="scope">
+                        {{scope.$index + 1}}<!--从0开始的-->
+                        <!--{{scope.row}}行的数据-->
+                    </template>
+                </el-table-column>
+                <el-table-column prop="name" label="姓名" width="180"></el-table-column>
+                <el-table-column prop="sex" label="性别">
+                    <template slot-scope="scope">
+                        {{scope.row.sex === '1' ? '男' : '女'}}
+                    </template>
+                </el-table-column>
+                <el-table-column prop="tell" label="电话"></el-table-column>
+                <el-table-column width="160" label="操作">
+                    <template slot-scope="scope">
+                        <el-button
+                            size="mini"
+                            @click="handleEdit(scope.$index,scope.row)">编辑</el-button>
+                        <el-button
+                            size="mini"
+                            type="danger"
+                            @click="handleDelete(scope.$index,scope.row)">删除</el-button>
+                    </template>
+                </el-table-column>
+            </el-table>
+            <el-pagination
+                v-if="page.size<page.total"
+                background
+                layout="total,prev,pager,next,jumper"
+                @current-change="currentChange"
+                :page-size="page.size"
+                :current-page="page.current"
+                :total="page.total">
+            </el-pagination>
+        </template>
+        <el-dialog style="display:none" :close-on-click-modal="false" :append-to-body="true"
+            title="添加编辑用户信息"
+            :visible.sync="dialogVisible"
+            width="30%"
+            :before-close="handleClose">
+            <div>
+                <el-form ref="form" :model="editObj" label-width="80px"><!--model="editObj" 就是实体啊-->
+                    <el-form-item label="姓名">
+                        <el-input v-model="editObj.name" clearable></el-input>
+                    </el-form-item>
+                    <el-form-item label="性别">
+                        <el-select v-model="editObj.sex" placeholder="请选择性别">
+                            <el-option label="选择" value=""></el-option>
+                            <el-option label="男生" value="1"></el-option>
+                            <el-option label="女生" value="2"></el-option>
+                        </el-select>
+                    </el-form-item>
+                    <el-form-item label="手机号码">
+                        <el-input v-model="editObj.tell" clearable></el-input>
+                    </el-form-item>
+                </el-form>
+            </div>
+            <span slot="footer" class="dialog-footer">
+            <el-button @click="dialogVisible = false">取消</el-button>
+            <el-button type="primary" @click="submitSave">提交</el-button>
+          </span>
+        </el-dialog>
+    </div>
+<!-- import Vue before Element -->
+<script src="javascript/element-ui/vue.min.js"></script>
+<!-- import JavaScript -->
+<script src="javascript/element-ui/index.js"></script>
+<script src="javascript/element-ui/axios.min.js"></script>
+<script src="javascript/page/Ajax.js"></script>
+<script type="text/javascript">
+    new Vue({
+        fields : {
+            name : '',
+            sex : '',
+            tell : ''
+        },
+        el : '#app',
+        data : function(){
+            return {
+                ajax : null,
+                page : {
+                    total : 0,
+                    current : 1,
+                    size : 5
+                },
+                userInfo : {//表单的输入框的数据及dom(user对象)
+                    name : '',
+                    sex : '',
+                    tell : ''
+                },
+                tableData : [],
+                options: [{
+                    value : '',
+                    label : '选择'
+                },{
+                    value : '1',
+                    label : '男生'
+                },{
+                    value : '2',
+                    label : '女生'
+                }],
+                dialogVisible : false, //控制dialog对话框是否显示的
+                editObj : {
+                    name : '',
+                    sex : '',
+                    tell : ''
+                },
+                //保留要修改的数据
+                userIndex : 0
+            }
+        },
+        /*html加载完成之前，执行。执行顺序：父组件-子组件,在模板渲染成html前调用，即通常初始化某些属性值，然后再渲染成视图。*/
+        created : function(){
+        },
+        /*页面初始化方法,html加载完成后执行。执行顺序：子组件-父组件,在模板渲染成html后调用，通常是初始化页面完成后，再对html的dom节点进行一些需要的操作*/
+        mounted : function(){
+            this.ajax = new Ajax(this);
+            this.getListData();
+        },
+        /*事件方法执行*/
+        methods : {
+            fnMessage : function(msg){
+                this.$message(msg);
+            },
+            fnMsgError : function(msg){
+                this.$message.error(msg);
+            },
+            fnMsgSuccess : function(msg){
+                this.$message({
+                    message : msg,
+                    type : 'success'
+                });
+            },
+            fnConfirm : function(msg,verify,cancel){
+                this.$confirm(msg, '系统提示',{
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                    //center: true
+                }).then(() => {
+                    if(verify){
+                        verify();
+                    }
+                }).catch(() => {
+                    if(cancel){
+                        cancel();
+                    }
+                });
+            },
+            //dialog对话框右上角的关闭之前的操作
+            handleClose : function(done) {
+                /*有用,不要删除,this.$confirm('确认关闭?')
+                    .then(_ => {
+                        done();
+                    })
+                .catch(_ => {});*/
+                this.dialogVisible = false;
+            },
+            checkFormAdd : function(){
+                if(!this.userInfo.name){
+                    this.fnMsgError('请输入姓名');
+                    return;
+                }
+                if(!this.userInfo.sex){
+                    this.fnMsgError('请选择性别');
+                    return;
+                }
+                if(!this.userInfo.tell){
+                    this.fnMsgError('电话号码不能为空');
+                    return;
+                }
+                if(!(/^1[3456789]\d{9}$/.test(this.userInfo.tell))){
+                    this.fnMsgError('请输入正确的手机号');
+                    return;
+                }
+                return true;
+            },
+            //添加
+            addUser : function(){
+                var form = this.checkFormAdd();
+                if(!form){
+                    return;
+                }
+                this.tableData.push(this.userInfo);
+                this.userInfo = { //清空表单
+                    name : '',
+                    sex : '',
+                    tell : ''
+                };
+                this.fnMsgSuccess('添加成功');
+            },
+            handleEdit : function(index,item){
+                this.userIndex = index;
+                /*this.editObj.name = item.name;
+                this.editObj.sex = item.sex;
+                this.editObj.tell = item.tell;*/
+                this.editObj = {
+                    name : item.name,
+                    sex : item.sex,
+                    tell : item.tell
+                }
+                this.dialogVisible = true;
+            },
+            handleDelete : function(index,row){
+                var _this = this;
+                this.fnConfirm('删除之后是无法恢复,确认要删除吗?',function(){
+                    _this.tableData.splice(index,1);
+                    _this.fnMsgSuccess('删除成功');
+                },function(){
+                    _this.fnMessage('已取消操作');
+                });
+            },
+            checkFormEdit : function(){
+                if(!this.editObj.name){
+                    this.fnMsgError('请输入姓名');
+                    return;
+                }
+                if(!this.editObj.sex){
+                    this.fnMsgError('请选择性别');
+                    return;
+                }
+                if(!this.editObj.tell){
+                    this.fnMsgError('电话号码不能为空');
+                    return;
+                }
+                if(!(/^1[3456789]\d{9}$/.test(this.editObj.tell))){
+                    this.fnMsgError('请输入正确的手机号');
+                    return;
+                }
+                return true;
+            },
+            submitSave : function(){
+                var form = this.checkFormEdit();
+                if(!form){
+                    return;
+                }
+                var _this = this;
+                //this.tableData[this.userIndex] = this.editObj;//这种方式不支持响应式的更新数据,没有及时渲染到页面上,没有实现数据双向绑定,是不是响应性的!!!
+                //官方示例
+                //Vue.set(vm.items, indexOfItem, newValue)//第1个参数是表格的数据,第2个是修改列表的索引值,第3个是编辑后的数据
+                Vue.set(_this.tableData,this.userIndex,this.editObj);//第1个参数是表格的数据,第2个是修改列表的索引值,第3个是编辑后的数据,ok
+                this.dialogVisible = false;
+                this.fnMsgSuccess('操作成功');
+            },
+            getListData : function(){
+                var pageIndex = this.page.current;
+                var _this = this;
+                if (!pageIndex || pageIndex == 0){
+                    pageIndex = 1;
+                }
+                var params = {
+                    start : (pageIndex - 1) * this.page.size,
+                    pageSize : this.page.size,
+                };
+                //这个写法有值时才传递
+                if(this.userInfo.name){
+                    params.name = this.userInfo.name;
+                }
+                this.ajax.get('api/getListData',params,function(data){
+                    if(data.data.code === 200){
+                        _this.tableData = data.data.data;
+                        _this.page.total = data.data.total;
+                    }
+                },function(err){
+                    console.info(err);
+                });
+            },
+            currentChange : function(current){
+                this.page.current = current;
+                this.getListData();
+            }
+        }
+    });
+</script>
+</body>
+</html>
