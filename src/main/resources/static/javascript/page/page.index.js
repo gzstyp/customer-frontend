@@ -176,6 +176,7 @@ new Vue({
             ajax.get('http://127.0.0.1:83/api/getListData?pageSize=2&start=1',{},function(data){
                 if(data.data.code === 200){
                     _this.tableData = data.data.data;
+                    _this.page.total = data.data.total;
                 }
             },function(err){
                 console.info(err);
